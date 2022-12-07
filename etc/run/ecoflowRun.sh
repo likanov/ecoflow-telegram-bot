@@ -7,7 +7,7 @@ echo "###############################"
 echo " ecoflow bot Run"
 echo "###############################"
 
-JAVA_OPTS="-Xms1G -Xmx1G -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:./ecoflow-bot_gc.log"
+JAVA_OPTS="-Xms1G -Xmx1G"
 
 java ${JAVA_OPTS} \
     -DchartId=-779351830 \
