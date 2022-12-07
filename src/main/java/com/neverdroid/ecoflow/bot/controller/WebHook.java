@@ -30,10 +30,6 @@ public class WebHook {
     @Value("${chartId}")
     String chartId;
 
-    // Секретный ключ который придёт в нутри JSON от Gitea,
-    // что бы левые люди не имели доступа к боту т.к. API публичное без авторизации
-    @Value("${secret}")
-    String secret;
 
     @Autowired
     public WebHook(Bot bot) {
@@ -57,6 +53,7 @@ public class WebHook {
         try {
             bot.execute(messageBuilder.build());
         } catch (TelegramApiException e) {
+            e.printStackTrace();
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
