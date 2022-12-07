@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
@@ -31,19 +32,30 @@ public class Scheduler {
     @Autowired
     private EcoFlow ecoFlow;
 
-    // Method
-    // To trigger the scheduler every one minute
-    // between 12:00 PM to 12:59 PM
+    private final AtomicBoolean isUsersNotified = new AtomicBoolean(false);
+
     @Scheduled(cron = "*/60 * * * * *")
     public void scheduleTask() {
 
         QueryDeviceQuota deviceQuota = ecoFlow.getDeviceQuota(deviceId);
-        if(deviceQuota==null){
+        if(deviceQuota == null){
             log.info("Device quota is null");
             return;
         }
-        if(deviceQuota.getData().getSoc()>=20){
+
+        if(deviceQuota.getData().getSoc() >= 20){
             log.info("Device quota Soc is: " + deviceQuota.getData().getSoc());
+            isUsersNotified.set(false);
+            return;
+        }
+
+        if(isUsersNotified.get()){
+            log.info("Users already notified");
+            return;
+        }
+
+        if(!deviceQuota.getData().getWattsInSum().equals(0)){
+            log.info("Device is charging");
             return;
         }
 
@@ -53,6 +65,7 @@ public class Scheduler {
         messageBuilder.text(MessageUtil.getTelegramMessage(deviceQuota));
         try {
             bot.execute(messageBuilder.build());
+            isUsersNotified.set(true);
         } catch (TelegramApiException e) {
             e.printStackTrace();
             log.error(e.getMessage());
