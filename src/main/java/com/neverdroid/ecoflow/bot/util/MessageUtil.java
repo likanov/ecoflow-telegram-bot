@@ -2,16 +2,15 @@ package com.neverdroid.ecoflow.bot.util;
 
 import com.neverdroid.ecoflow.bot.model.QueryDeviceQuota;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 public class MessageUtil {
-    public static String getTelegramMessage(QueryDeviceQuota queryDeviceQuota ) {
+    public static String getStatusTelegramMessage(QueryDeviceQuota queryDeviceQuota ) {
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS");
-        String strDate = dateFormat.format(new Date());
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Europe/Kiev"));
 
-        return "<b>running at -" + strDate + "</b> \n\n" +
+        return "<b>executed at -" + now + "</b> \n\n" +
                 "Code - " + queryDeviceQuota.getCode() + " \n" +
                 "Message - " + queryDeviceQuota.getMessage() + "\n\n" +
                 "Soc % - " + queryDeviceQuota.getData().getSoc() + "\n" +
