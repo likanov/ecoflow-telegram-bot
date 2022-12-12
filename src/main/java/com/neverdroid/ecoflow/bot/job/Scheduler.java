@@ -72,7 +72,7 @@ public class Scheduler {
         }
 
 
-        if (!isRunningOut.get() && deviceQuota.getData().getSoc() <= 20) {
+        if (!isRunningOut.get() && deviceQuota.getData().getSoc() <= 20 && deviceQuota.getData().getWattsInSum() == 0) {
             isRunningOut.set(true);
 
             isCharged.set(false);
