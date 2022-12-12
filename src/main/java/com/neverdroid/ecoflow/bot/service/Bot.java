@@ -66,7 +66,7 @@ public class Bot extends TelegramLongPollingBot {
         if (messageText.contains("/command3") && chatId.equals(chartId)) {
             QueryDeviceQuota deviceQuota = ecoFlow.getDeviceQuota(deviceId);
             builder.parseMode(ParseMode.HTML);
-            builder.text(MessageUtil.getTelegramMessage(deviceQuota));
+            builder.text(MessageUtil.getStatusTelegramMessage(deviceQuota));
             try {
                 execute(builder.build());
             } catch (TelegramApiException e) {
