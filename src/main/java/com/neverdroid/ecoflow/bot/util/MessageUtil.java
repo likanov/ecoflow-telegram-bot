@@ -11,8 +11,6 @@ public class MessageUtil {
         OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Europe/Kiev"));
 
         return "<b>executed at -" + now + "</b> \n\n" +
-                "Code - " + queryDeviceQuota.getCode() + " \n" +
-                "Message - " + queryDeviceQuota.getMessage() + "\n\n" +
                 "Soc % - " + queryDeviceQuota.getData().getSoc() + "\n" +
                 "Remain Time - " + queryDeviceQuota.getData().getRemainTime() + "\n" +
                 "Watts In Sum - " + queryDeviceQuota.getData().getWattsInSum() + "  \n" +
