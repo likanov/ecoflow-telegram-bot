@@ -9,11 +9,9 @@ import org.springframework.context.annotation.PropertySource;
 @Data
 @PropertySource("classpath:application.properties")
 public class BotConfig {
-    // Имя бота заданное при регистрации
     @Value("${botUserName}")
     String botUserName;
 
-    // Токен полученный при регистрации
     @Value("${token}")
     String token;
 }

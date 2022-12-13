@@ -4,8 +4,8 @@ import com.neverdroid.ecoflow.bot.config.BotConfig;
 import com.neverdroid.ecoflow.bot.model.QueryDeviceQuota;
 import com.neverdroid.ecoflow.bot.util.MessageUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
@@ -17,17 +17,21 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @Slf4j
 public class Bot extends TelegramLongPollingBot {
 
-    final BotConfig config;
+    private final BotConfig config;
+    private final EcoFlow ecoFlow;
+
+    private final BuildProperties buildProperties;
 
     @Value("${chartId}")
     String chartId;
 
     @Value("${deviceId}")
     String deviceId;
-    @Autowired
-    private EcoFlow ecoFlow;
-    public Bot(BotConfig config) {
+
+    public Bot(BotConfig config, EcoFlow ecoFlow, BuildProperties buildProperties) {
         this.config = config;
+        this.ecoFlow = ecoFlow;
+        this.buildProperties = buildProperties;
     }
 
     public void onUpdateReceived(Update update) {
@@ -74,8 +78,27 @@ public class Bot extends TelegramLongPollingBot {
                 log.error(e.getMessage());
             }
         }
-    }
 
+        if (messageText.contains("/getInfo") && chatId.equals(chartId)) {
+            builder.parseMode(ParseMode.HTML);
+            String buildInfo = new StringBuilder().append("Version: ").append(buildProperties.getVersion()).append("\n").
+                    append("Name: ").append(buildProperties.getName()).append("\n").
+                    append("Time: ").append(buildProperties.getTime()).append("\n").
+                    append("Group: ").append(buildProperties.getGroup()).append("\n").
+                    append("Git branch: ").append(buildProperties.get("git.branch")).append("\n").
+                    append("Git commit: ").append(buildProperties.get("git.commit")).append("\n").
+                    append("Git URL: ").append(buildProperties.get("git.url")).append("\n").
+                    append("Artifact: ").append(buildProperties.getArtifact()).toString();
+
+            builder.text(buildInfo);
+            try {
+                execute(builder.build());
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+                log.error(e.getMessage());
+            }
+        }
+    }
 
     public String getBotUsername() {
         return config.getBotUserName();

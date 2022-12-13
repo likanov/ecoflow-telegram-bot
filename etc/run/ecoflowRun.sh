@@ -11,4 +11,4 @@ JAVA_OPTS="-Xms128m -Xmx256m"
 
 java ${JAVA_OPTS} \
     -DchartId=-779351830 \
-    -jar /home/antonv_likanov/ecoflow-telegram-bot/target/ecoflow-bot-0.0.1-SNAPSHOT.jar >> ${logname} 2>&1
+    -jar /home/pi/ecoflow-telegram-bot/target/ecoflow-bot-0.1.1-SNAPSHOT.jar >> ${logname} 2>&1

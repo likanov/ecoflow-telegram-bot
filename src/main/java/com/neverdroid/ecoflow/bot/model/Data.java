@@ -13,7 +13,6 @@ import lombok.ToString;
 @NoArgsConstructor
 @ToString
 public class Data {
-
     @SerializedName("soc")
     @Expose
     private Integer soc;
