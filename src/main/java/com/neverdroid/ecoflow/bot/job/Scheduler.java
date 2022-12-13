@@ -3,6 +3,7 @@ package com.neverdroid.ecoflow.bot.job;
 import com.neverdroid.ecoflow.bot.model.QueryDeviceQuota;
 import com.neverdroid.ecoflow.bot.service.Bot;
 import com.neverdroid.ecoflow.bot.service.EcoFlow;
+import com.neverdroid.ecoflow.bot.util.CSVHelper;
 import com.neverdroid.ecoflow.bot.util.MessageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,8 +47,7 @@ public class Scheduler {
             log.info("Device quota is null");
             return;
         }
-
-        log.info("Battery Soc: " + deviceQuota.getData().getSoc());
+        CSVHelper.putDeviceQuota2csv(deviceQuota, deviceId);
 
         if (!isCharged.get() && deviceQuota.getData().getWattsInSum().equals(deviceQuota.getData().getWattsOutSum()) && deviceQuota.getData().getRemainTime() == 5999) {
             isCharged.set(true);
@@ -79,7 +79,7 @@ public class Scheduler {
             isCharging.set(false);
             isSocketInOff.set(false);
 
-            sendMessage("<b>Battery run out of charge in "+deviceQuota.getData().getRemainTime()+" minutes</b> \n\n" + MessageUtil.getStatusTelegramMessage(deviceQuota));
+            sendMessage("<b>Battery run out of charge in " + deviceQuota.getData().getRemainTime() + " minutes</b> \n\n" + MessageUtil.getStatusTelegramMessage(deviceQuota));
             return;
         }
 
@@ -93,6 +93,7 @@ public class Scheduler {
             sendMessage("<b>Battery socket in off</b> \n\n" + MessageUtil.getStatusTelegramMessage(deviceQuota));
         }
     }
+
 
     private void sendMessage(String telegramMessage) {
         SendMessage.SendMessageBuilder messageBuilder = SendMessage.builder();
