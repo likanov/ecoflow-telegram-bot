@@ -77,7 +77,6 @@ public class Scheduler {
 
             isCharged.set(false);
             isCharging.set(false);
-            isSocketInOff.set(false);
 
             sendMessage("<b>Battery run out of charge in " + deviceQuota.getData().getRemainTime() + " minutes</b> \n\n" + MessageUtil.getStatusTelegramMessage(deviceQuota));
             return;
