@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 @lombok.Data
 @Builder
 @AllArgsConstructor
@@ -25,4 +27,5 @@ public class Data {
     @SerializedName("wattsInSum")
     @Expose
     private Integer wattsInSum;
+    private LocalDateTime dateTime;
 }

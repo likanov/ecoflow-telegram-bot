@@ -10,8 +10,19 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -67,7 +78,7 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
-        if (messageText.contains("/command3") && chatId.equals(chartId)) {
+        if ((messageText.contains("/command3") || messageText.contains("status")) && chatId.equals(chartId)) {
             QueryDeviceQuota deviceQuota = ecoFlow.getDeviceQuota(deviceId);
             builder.parseMode(ParseMode.HTML);
             builder.text(MessageUtil.getStatusTelegramMessage(deviceQuota));
@@ -79,7 +90,7 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
-        if (messageText.contains("/getInfo") && chatId.equals(chartId)) {
+        if (messageText.contains("build info") && chatId.equals(chartId)) {
             builder.parseMode(ParseMode.HTML);
             String buildInfo = new StringBuilder().append("Version: ").append(buildProperties.getVersion()).append("\n").
                     append("Name: ").append(buildProperties.getName()).append("\n").
@@ -98,6 +109,70 @@ public class Bot extends TelegramLongPollingBot {
                 log.error(e.getMessage());
             }
         }
+
+        if (messageText.contains("/menu") && chatId.equals(chartId)) {
+            builder.parseMode(ParseMode.HTML);
+            String message = "Please select an option from below:" ;
+            builder.text(message);
+            SendMessage sendMessage = builder.build();
+            setButtons(sendMessage);
+            try {
+                execute(sendMessage);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+                log.error(e.getMessage());
+            }
+        }
+
+        if (messageText.contains("12 hours report") && chatId.equals(chartId)) {
+            try {
+                SendPhoto sendPhoto = SendPhoto.builder()
+                        .chatId(chartId)
+                        .photo(new InputFile(new FileInputStream(new File("histogram.png")), "12_hours_report.png"))
+                        .caption("12 hours report")
+                        .build();
+                execute(sendPhoto);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+                log.error(e.getMessage());
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    public synchronized void setButtons(SendMessage sendMessage) {
+        // Create a keyboard
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        sendMessage.setReplyMarkup(replyKeyboardMarkup);
+        replyKeyboardMarkup.setSelective(true);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(false);
+
+        // Create a list of keyboard rows
+        List<KeyboardRow> keyboard = new ArrayList<>();
+
+        // First keyboard row
+        KeyboardRow keyboardFirstRow = new KeyboardRow();
+
+        // Add buttons to the first keyboard row
+        keyboardFirstRow.add(new KeyboardButton("status"));
+        keyboardFirstRow.add(new KeyboardButton("12 hours report"));
+
+        // Second keyboard row
+        KeyboardRow keyboardSecondRow = new KeyboardRow();
+
+        // Add the buttons to the second keyboard row
+        keyboardSecondRow.add(new KeyboardButton("help"));
+        keyboardSecondRow.add(new KeyboardButton("get build info"));
+
+        // Add all of the keyboard rows to the list
+        keyboard.add(keyboardFirstRow);
+        keyboard.add(keyboardSecondRow);
+
+        // and assign this list to our keyboard
+        replyKeyboardMarkup.setKeyboard(keyboard);
     }
 
     public String getBotUsername() {
