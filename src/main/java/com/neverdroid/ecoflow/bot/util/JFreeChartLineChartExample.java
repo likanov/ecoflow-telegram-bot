@@ -6,15 +6,38 @@ import org.apache.commons.csv.CSVRecord;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.AxisLocation;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.labels.ItemLabelAnchor;
+import org.jfree.chart.labels.ItemLabelPosition;
+import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.StatisticalBarRenderer;
+import org.jfree.chart.renderer.xy.StandardXYBarPainter;
+import org.jfree.chart.renderer.xy.XYBarRenderer;
+import org.jfree.chart.ui.TextAnchor;
+import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.statistics.DefaultStatisticalCategoryDataset;
+import org.jfree.data.statistics.HistogramDataset;
+import org.jfree.data.statistics.HistogramType;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.pdf.PDFDocument;
+import org.jfree.pdf.PDFGraphics2D;
+import org.jfree.pdf.Page;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,7 +48,11 @@ public class JFreeChartLineChartExample {
     public static void main(String[] args) throws IOException {
 
         String[] headers = new String[]{"Date", "soc", "remainTime", "wattsOutSum", "wattsInSum"};
-        Reader in = new FileReader("DeviceQuota-DAEBZ5ZD9241160-2022-12-14.csv");
+        String currentDate = OffsetDateTime.now(ZoneId.of("Europe/Kiev")).format(DateTimeFormatter.ISO_LOCAL_DATE);
+
+        OffsetDateTime.now(ZoneId.of("Europe/Kiev")).minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
+
+        Reader in = new FileReader("DeviceQuota-DAEBZ5ZD9241160-"+currentDate+".csv");
 
         Iterable<CSVRecord> records = CSVFormat.DEFAULT
                 .withHeader(headers)
@@ -42,7 +69,7 @@ public class JFreeChartLineChartExample {
         for (CSVRecord record : records) {
 
             String date = record.get("Date");
-            date = "2022-12-14T" + date;
+            date = currentDate+"T" + date;
 
             LocalDateTime parse = LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
             hours.add(parse.getHour());
@@ -56,21 +83,38 @@ public class JFreeChartLineChartExample {
             ));
         }
 
+        double sumConsumedWatts = 0;
+
+        DefaultStatisticalCategoryDataset dataset = new DefaultStatisticalCategoryDataset();
+
 
         for (Integer hour : hours) {
             OptionalDouble averageWattsOutSum = dataList.stream().filter(data -> data.getDateTime().getHour() == hour).mapToInt(Data::getWattsOutSum).average();
+            int[] wattsOutSumArray = dataList.stream().filter(data -> data.getDateTime().getHour() == hour).mapToInt(Data::getWattsOutSum).toArray();
+            double outSumStandardDeviation = getStandardDeviation(wattsOutSumArray);
+
             OptionalDouble averageWattsInSum = dataList.stream().filter(data -> data.getDateTime().getHour() == hour).mapToInt(Data::getWattsInSum).average();
+            int[] wattsInSumArray = dataList.stream().filter(data -> data.getDateTime().getHour() == hour).mapToInt(Data::getWattsInSum).toArray();
+            double inSumStandardDeviation = getStandardDeviation(wattsInSumArray);
 
             double hourDouble = hour;
-            wattsOutSumSeries.add(hourDouble, averageWattsOutSum.getAsDouble());
-            wattsInSumSeries.add(hourDouble,  averageWattsInSum.getAsDouble());
+            dataset.add(averageWattsOutSum.getAsDouble(), outSumStandardDeviation, "WattsOutSum", String.valueOf(hourDouble));
+            dataset.add(averageWattsInSum.getAsDouble(), inSumStandardDeviation, "WattsInSum", String.valueOf(hourDouble));
+
+            sumConsumedWatts += averageWattsOutSum.getAsDouble();
         }
+
+        System.out.println("sumConsumedWatts = " + sumConsumedWatts);
 
         long countOff = dataList.stream().filter(data -> data.getWattsInSum() == 0).count();
         System.out.println("minutes without socket power = " + countOff);
 
         long countOn = dataList.stream().filter(data -> data.getWattsInSum() != 0).count();
         System.out.println("minutes with socket power = " + countOn);
+
+
+        int sum = dataList.stream().filter(data -> data.getWattsInSum() == 0).mapToInt(Data::getWattsOutSum).sum();
+        System.out.println("sum consumed watts = " + sum);
 
         OptionalDouble averageOut = dataList.stream().mapToInt(Data::getWattsOutSum).average();
         System.out.println("average watts out = " + averageOut.getAsDouble());
@@ -91,8 +135,74 @@ public class JFreeChartLineChartExample {
         xySeriesCollection.addSeries(wattsOutSumSeries);
         xySeriesCollection.addSeries(wattsInSumSeries);
 
-        JFreeChart pieChart = ChartFactory.createXYLineChart("Power supply report", "time", "watts", xySeriesCollection, PlotOrientation.VERTICAL, true, true, false);
-        ChartUtils.saveChartAsPNG(new File("histogram1.png"), pieChart, 450, 400);
+        JFreeChart chart = createChart(dataset);
+        PDFDocument pdfDoc = new PDFDocument();
+        pdfDoc.setTitle("PDFBarChartDemo2");
+        pdfDoc.setAuthor("neverdroid.com");
+        Page page = pdfDoc.createPage(new Rectangle(612, 468));
+        PDFGraphics2D g2 = page.getGraphics2D();
+        chart.draw(g2, new Rectangle(0, 0, 612, 468));
+        pdfDoc.writeToFile(new File("PDFBarChartDemo2.pdf"));
+    }
 
+
+    private static JFreeChart createChart(CategoryDataset dataset) {
+
+        // create the chart...
+        JFreeChart chart = ChartFactory.createLineChart( "Power supply report", "Hour", "watts", dataset);
+
+        CategoryPlot plot = (CategoryPlot) chart.getPlot();
+
+        // customise the range axis...
+        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+        rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        rangeAxis.setAutoRangeIncludesZero(false);
+
+        // customise the renderer...
+        StatisticalBarRenderer renderer = new StatisticalBarRenderer();
+        renderer.setDrawBarOutline(false);
+        renderer.setErrorIndicatorPaint(Color.BLACK);
+        renderer.setIncludeBaseInRange(false);
+        plot.setRenderer(renderer);
+
+        // ensure the current theme is applied to the renderer just added
+        ChartUtils.applyCurrentTheme(chart);
+
+        renderer.setDefaultItemLabelGenerator( new StandardCategoryItemLabelGenerator());
+        renderer.setDefaultItemLabelsVisible(true);
+        renderer.setDefaultItemLabelPaint(Color.YELLOW);
+        renderer.setDefaultPositiveItemLabelPosition(new ItemLabelPosition( ItemLabelAnchor.INSIDE6, TextAnchor.BOTTOM_CENTER));
+
+        // set up gradient paints for series...
+        GradientPaint gp0 = new GradientPaint(0.0f, 0.0f, Color.BLUE, 0.0f, 0.0f, new Color(0, 0, 64));
+        GradientPaint gp1 = new GradientPaint(0.0f, 0.0f, Color.GREEN, 0.0f, 0.0f, new Color(0, 64, 0));
+        renderer.setSeriesPaint(0, gp0);
+        renderer.setSeriesPaint(1, gp1);
+        return chart;
+    }
+
+    private static double getStandardDeviation(int[] arr) {
+        double sum = 0.0;
+        double standardDeviation = 0.0;
+        double mean = 0.0;
+        double res = 0.0;
+        double sq = 0.0;
+
+
+        int n = arr.length;
+
+
+        for (int i = 0; i < n; i++) {
+            sum = sum + arr[i];
+        }
+
+        mean = sum / (n);
+        for (int i = 0; i < n; i++) {
+            standardDeviation = standardDeviation + Math.pow((arr[i] - mean), 2);
+        }
+
+        sq = standardDeviation / n;
+        res = Math.sqrt(sq);
+        return res;
     }
 }

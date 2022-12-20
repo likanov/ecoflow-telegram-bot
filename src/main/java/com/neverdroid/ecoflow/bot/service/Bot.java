@@ -128,7 +128,7 @@ public class Bot extends TelegramLongPollingBot {
             try {
                 SendPhoto sendPhoto = SendPhoto.builder()
                         .chatId(chartId)
-                        .photo(new InputFile(new FileInputStream(new File("histogram.png")), "12_hours_report.png"))
+                        .photo(new InputFile(new FileInputStream(new File("PDFBarChartDemo1.pdf")), "PDFBarChartDemo1.pdf"))
                         .caption("12 hours report")
                         .build();
                 execute(sendPhoto);
