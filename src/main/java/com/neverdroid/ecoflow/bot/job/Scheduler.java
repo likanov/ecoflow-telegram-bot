@@ -49,7 +49,7 @@ public class Scheduler {
         }
         CSVHelper.putDeviceQuota2csv(deviceQuota, deviceId);
 
-        if (!isCharged.get() && deviceQuota.getData().getWattsInSum().equals(deviceQuota.getData().getWattsOutSum()) && deviceQuota.getData().getRemainTime() == 5999) {
+        if (!isCharged.get() && deviceQuota.getData().getWattsInSum().equals(deviceQuota.getData().getWattsOutSum()) ) {
             isCharged.set(true);
 
             isRunningOut.set(false);
